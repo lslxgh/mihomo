@@ -81,7 +81,7 @@ func ParseProxyGroup(config map[string]any, proxyMap map[string]C.Proxy, provide
 	if !ok {
 		return nil, fmt.Errorf("%s: empty fallback proxy '%s' not found", groupName, groupOption.EmptyFallback)
 	}
-	if _, ok := emptyFallback.Adapter().(ProxyGroup); ok { // strictly forbidden to fill in a proxy group for empty-fallback
+	if _, ok := emptyFallback.Adapter().(ProxyGroup); ok {
 		return nil, fmt.Errorf("%s: empty fallback proxy '%s' not found", groupName, groupOption.EmptyFallback)
 	}
 
@@ -96,10 +96,6 @@ func ParseProxyGroup(config map[string]any, proxyMap map[string]C.Proxy, provide
 		groupOption.Use = AllProviders
 	}
 	if groupOption.IncludeAllProxies {
-		// GetProxies already hides what exclude-filter and exclude-type
-		// match, but the compatible provider built from these names
-		// health-checks every one of them. Drop the excluded names here, as
-		// filter does below, or the group probes proxies it can never select.
 		allProxies := AllProxies
 		if groupOption.ExcludeFilter != "" || groupOption.ExcludeType != "" {
 			var excludeFilterRegs []*regexp2.Regexp
@@ -173,7 +169,6 @@ func ParseProxyGroup(config map[string]any, proxyMap map[string]C.Proxy, provide
 			return nil, fmt.Errorf("%s: %w", groupName, err)
 		}
 
-		// if test URL is empty, use the first health check URL of providers
 		if groupOption.URL == "" {
 			for _, pd := range PDs {
 				if pd.HealthCheckURL() != "" {
@@ -204,7 +199,6 @@ func ParseProxyGroup(config map[string]any, proxyMap map[string]C.Proxy, provide
 			groupOption.URL = C.DefaultTestURL
 		}
 
-		// select don't need auto health check
 		if groupOption.Type != "select" && groupOption.Type != "relay" {
 			if groupOption.Interval == 0 {
 				groupOption.Interval = 300
@@ -253,13 +247,6 @@ func ParseProxyGroup(config map[string]any, proxyMap map[string]C.Proxy, provide
 		return NewLoadBalance(groupOption, opt, emptyFallback, providers)
 	case "relay":
 		return nil, fmt.Errorf("%w: The group [%s] with relay type was removed, please using dialer-proxy instead", errType, groupName)
-	case "smart":
-		opt := SmartOption{}
-		err = decoder.Decode(config, &opt)
-		if err != nil {
-			return nil, err
-		}
-		return NewSmart(groupOption, opt, emptyFallback, providers)
 	default:
 		return nil, fmt.Errorf("%w: %s", errType, groupOption.Type)
 	}
